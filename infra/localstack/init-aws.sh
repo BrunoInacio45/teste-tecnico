@@ -25,8 +25,8 @@ echo "==> Creating DynamoDB tables..."
 
 aws --endpoint-url=$ENDPOINT dynamodb create-table \
   --table-name events \
-  --attribute-definitions AttributeName=id,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH \
+  --attribute-definitions AttributeName=event_id,AttributeType=S \
+  --key-schema AttributeName=event_id,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST
 
 aws --endpoint-url=$ENDPOINT dynamodb create-table \
