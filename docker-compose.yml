@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  localstack:
+    image: localstack/localstack:3.4
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs,dynamodb
+      - DEFAULT_REGION=us-east-1
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - ./infra/localstack:/etc/localstack/init/ready.d
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    networks:
+      - app-network
+
+  processor:
+    build:
+      context: ./services/processor
+      dockerfile: Dockerfile
+    environment:
+      - AWS_ENDPOINT=http://localstack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - RAW_EVENTS_QUEUE=raw-events
+      - PROCESSED_EVENTS_QUEUE=processed-events
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  aggregator:
+    build:
+      context: ./services/aggregator
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - AWS_ENDPOINT=http://localstack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - PROCESSED_EVENTS_QUEUE=processed-events
+      - EVENTS_TABLE=events
+      - SUMMARY_TABLE=developer_summary
+      - PORT=8080
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
