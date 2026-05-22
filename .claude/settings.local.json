@@ -4,7 +4,17 @@
       "Bash(go build *)",
       "Bash(go version *)",
       "Bash(go get *)",
-      "Bash(go mod *)"
+      "Bash(go mod *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Bruno\\\\Projetos\\\\TesteItau\\\\services\\\\aggregator\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(go test *)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Bruno\\\\Projetos\\\\TesteItau\" -Recurse -Force | Select-Object -ExpandProperty FullName | ForEach-Object { $_ -replace [regex]::Escape\\(\"c:\\\\Users\\\\Bruno\\\\Projetos\\\\TesteItau\"\\), \".\" } | Sort-Object)",
+      "Bash(Get-ChildItem -Recurse -Path \"c:\\\\Users\\\\Bruno\\\\Projetos\\\\TesteItau\" -Directory -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(go install *)",
+      "Bash(swag init *)",
+      "Bash(swag --version)"
     ]
   }
 }

@@ -1,3 +1,9 @@
+// @title          Aggregator API
+// @version        1.0
+// @description    API de métricas de desenvolvedores — consulta eventos processados e resumos agregados.
+// @host           localhost:8080
+// @BasePath       /
+
 package main
 
 import (
@@ -16,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 
+	_ "aggregator/docs"
 	"aggregator/internal/domain"
 	"aggregator/internal/infra/api"
 	"aggregator/internal/infra/config"

@@ -1,0 +1,126 @@
+basePath: /
+definitions:
+  aggregator_internal_domain.DeveloperSummary:
+    properties:
+      avg_review_time_minutes:
+        type: number
+      developer_id:
+        type: string
+      events_processed:
+        type: integer
+      last_activity:
+        type: string
+      total_commits:
+        type: integer
+      total_pull_requests:
+        type: integer
+    type: object
+  aggregator_internal_domain.ProcessedEvent:
+    properties:
+      developer_id:
+        type: string
+      event_id:
+        type: string
+      metric_type:
+        type: string
+      processed_at:
+        type: string
+      processor_id:
+        type: string
+      repository:
+        type: string
+      timestamp:
+        type: string
+      value:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API de métricas de desenvolvedores — consulta eventos processados e
+    resumos agregados.
+  title: Aggregator API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Verifica se DynamoDB e SQS estão acessíveis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - infra
+  /metrics/{developer_id}:
+    get:
+      description: Retorna todos os eventos individuais processados para o desenvolvedor
+        informado
+      parameters:
+      - description: ID do desenvolvedor
+        in: path
+        name: developer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/aggregator_internal_domain.ProcessedEvent'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Lista eventos de um desenvolvedor
+      tags:
+      - metrics
+  /metrics/{developer_id}/summary:
+    get:
+      description: Retorna as métricas consolidadas (commits, PRs, tempo médio de
+        review) do desenvolvedor
+      parameters:
+      - description: ID do desenvolvedor
+        in: path
+        name: developer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/aggregator_internal_domain.DeveloperSummary'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Resumo agregado de um desenvolvedor
+      tags:
+      - metrics
+swagger: "2.0"

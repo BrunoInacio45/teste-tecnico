@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"aggregator/internal/domain"
 )
@@ -36,9 +37,17 @@ func NewRouter(events EventReader, summaries SummaryReader, sqsClient *sqs.Clien
 	mux.HandleFunc("GET /health", h.health)
 	mux.HandleFunc("GET /metrics/{developer_id}/summary", h.getSummary)
 	mux.HandleFunc("GET /metrics/{developer_id}", h.getEvents)
+	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
 	return mux
 }
 
+// @Summary     Health check
+// @Description Verifica se DynamoDB e SQS estão acessíveis
+// @Tags        infra
+// @Produce     json
+// @Success     200 {object} map[string]string
+// @Failure     503 {object} map[string]string
+// @Router      /health [get]
 func (h *Handler) health(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -55,7 +64,14 @@ func (h *Handler) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// getEvents retorna todos os eventos individuais de um desenvolvedor.
+// @Summary     Lista eventos de um desenvolvedor
+// @Description Retorna todos os eventos individuais processados para o desenvolvedor informado
+// @Tags        metrics
+// @Produce     json
+// @Param       developer_id path     string true "ID do desenvolvedor"
+// @Success     200          {array}  domain.ProcessedEvent
+// @Failure     500          {object} map[string]string
+// @Router      /metrics/{developer_id} [get]
 func (h *Handler) getEvents(w http.ResponseWriter, r *http.Request) {
 	developerID := r.PathValue("developer_id")
 
@@ -68,7 +84,15 @@ func (h *Handler) getEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, events)
 }
 
-// getSummary retorna o resumo agregado de um desenvolvedor.
+// @Summary     Resumo agregado de um desenvolvedor
+// @Description Retorna as métricas consolidadas (commits, PRs, tempo médio de review) do desenvolvedor
+// @Tags        metrics
+// @Produce     json
+// @Param       developer_id path     string true "ID do desenvolvedor"
+// @Success     200          {object} domain.DeveloperSummary
+// @Failure     404          {object} map[string]string
+// @Failure     500          {object} map[string]string
+// @Router      /metrics/{developer_id}/summary [get]
 func (h *Handler) getSummary(w http.ResponseWriter, r *http.Request) {
 	developerID := r.PathValue("developer_id")
 

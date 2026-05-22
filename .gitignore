@@ -1,1 +1,50 @@
-README.md
+# ─── Go ───────────────────────────────────────────────────────────────────────
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.work
+go.work.sum
+
+# ─── Build outputs ────────────────────────────────────────────────────────────
+services/aggregator/aggregator
+services/processor/processor
+
+# ─── Environment & secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+.docker/
+
+# ─── AWS ──────────────────────────────────────────────────────────────────────
+.aws/
+
+# ─── Editors & IDEs ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Test & coverage ──────────────────────────────────────────────────────────
+coverage.out
+coverage.html
+*.coverprofile
+
+# ─── Logs & temp ──────────────────────────────────────────────────────────────
+*.log
+tmp/
