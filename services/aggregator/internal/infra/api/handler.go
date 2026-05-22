@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"aggregator/internal/domain"
 )
@@ -38,7 +39,7 @@ func NewRouter(events EventReader, summaries SummaryReader, sqsClient *sqs.Clien
 	mux.HandleFunc("GET /metrics/{developer_id}/summary", h.getSummary)
 	mux.HandleFunc("GET /metrics/{developer_id}", h.getEvents)
 	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
-	return mux
+	return otelhttp.NewHandler(mux, "aggregator.http")
 }
 
 // @Summary     Health check

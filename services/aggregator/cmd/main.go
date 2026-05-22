@@ -21,6 +21,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
 
 	_ "aggregator/docs"
 	"aggregator/internal/domain"
@@ -28,6 +32,7 @@ import (
 	"aggregator/internal/infra/config"
 	"aggregator/internal/infra/queue"
 	"aggregator/internal/infra/repository"
+	"aggregator/internal/infra/telemetry"
 	"aggregator/internal/usecase"
 )
 
@@ -40,6 +45,14 @@ func main() {
 		"endpoint", cfg.AWSEndpoint,
 		"port", cfg.Port,
 	)
+
+	bgCtx := context.Background()
+	shutdownTracing, err := telemetry.Setup(bgCtx, "aggregator")
+	if err != nil {
+		slog.Warn("failed to initialize tracing", "error", err)
+		shutdownTracing = func(ctx context.Context) error { return nil }
+	}
+	defer shutdownTracing(bgCtx)
 
 	// Cria um único aws.Config compartilhado por SQS e DynamoDB
 	awsCfg := newAWSConfig(cfg)
@@ -102,13 +115,26 @@ func main() {
 	slog.Info("aggregator stopped")
 }
 
-// handleMessage faz unmarshal do evento, chama o usecase e deleta da fila.
+// handleMessage extrai o trace context da mensagem SQS, cria um span filho e processa o evento.
 func handleMessage(ctx context.Context, c *queue.Consumer, uc *usecase.AggregateUseCase, msg queue.Message) {
+	// Extrai o trace context W3C propagado pelo processor via MessageAttributes
+	ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(msg.Attributes))
+	ctx, span := otel.Tracer("aggregator").Start(ctx, "handleMessage")
+	defer span.End()
+
 	var event domain.ProcessedEvent
 	if err := json.Unmarshal([]byte(msg.Body), &event); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "unmarshal failed")
 		slog.Error("failed to unmarshal processed event", "error", err)
 		return
 	}
+
+	span.SetAttributes(
+		attribute.String("event.id", event.EventID),
+		attribute.String("event.developer_id", event.DeveloperID),
+		attribute.String("event.metric_type", event.MetricType),
+	)
 
 	slog.Info("received event",
 		"service", "aggregator",
@@ -118,6 +144,8 @@ func handleMessage(ctx context.Context, c *queue.Consumer, uc *usecase.Aggregate
 	)
 
 	if err := uc.Process(ctx, event); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "process failed")
 		slog.Error("failed to process event",
 			"service", "aggregator",
 			"event_id", event.EventID,
@@ -127,8 +155,12 @@ func handleMessage(ctx context.Context, c *queue.Consumer, uc *usecase.Aggregate
 	}
 
 	if err := c.Delete(ctx, msg.ReceiptHandle); err != nil {
+		span.RecordError(err)
 		slog.Error("failed to delete message", "event_id", event.EventID, "error", err)
+		return
 	}
+
+	span.SetStatus(codes.Ok, "")
 }
 
 func newAWSConfig(cfg config.Config) aws.Config {

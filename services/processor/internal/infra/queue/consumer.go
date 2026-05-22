@@ -13,6 +13,7 @@ import (
 type Message struct {
 	Body          string
 	ReceiptHandle string
+	Attributes    map[string]string // trace context headers (traceparent, tracestate)
 }
 
 type Consumer struct {
@@ -35,9 +36,10 @@ func (c *Consumer) Start(ctx context.Context, out chan<- Message) {
 		}
 
 		result, err := c.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
-			QueueUrl:            aws.String(c.queueURL),
-			MaxNumberOfMessages: 10,
-			WaitTimeSeconds:     20, // long polling: reduz chamadas vazias
+			QueueUrl:              aws.String(c.queueURL),
+			MaxNumberOfMessages:   10,
+			WaitTimeSeconds:       20, // long polling: reduz chamadas vazias
+			MessageAttributeNames: []string{"All"},
 		})
 		if err != nil {
 			if ctx.Err() != nil {
@@ -49,9 +51,16 @@ func (c *Consumer) Start(ctx context.Context, out chan<- Message) {
 		}
 
 		for _, msg := range result.Messages {
+			attrs := make(map[string]string, len(msg.MessageAttributes))
+			for k, v := range msg.MessageAttributes {
+				if v.StringValue != nil {
+					attrs[k] = *v.StringValue
+				}
+			}
 			out <- Message{
 				Body:          aws.ToString(msg.Body),
 				ReceiptHandle: aws.ToString(msg.ReceiptHandle),
+				Attributes:    attrs,
 			}
 		}
 	}

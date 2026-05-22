@@ -14,7 +14,8 @@
       "Bash(Sort-Object)",
       "Bash(go install *)",
       "Bash(swag init *)",
-      "Bash(swag --version)"
+      "Bash(swag --version)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Bruno\\\\Projetos\\\\TesteItau\" -Recurse -Directory)"
     ]
   }
 }

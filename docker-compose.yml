@@ -1,6 +1,14 @@
 version: "3.8"
 
 services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+    networks:
+      - app-network
+
   localstack:
     image: localstack/localstack:3.4
     ports:
@@ -33,9 +41,12 @@ services:
       - PROCESSED_EVENTS_QUEUE=processed-events
       - WORKERS_COUNT=5
       - PROCESSOR_ID=processor-1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=jaeger:4317
     depends_on:
       localstack:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     networks:
       - app-network
 
@@ -54,9 +65,12 @@ services:
       - EVENTS_TABLE=events
       - SUMMARY_TABLE=developer_summary
       - PORT=8080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=jaeger:4317
     depends_on:
       localstack:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     networks:
       - app-network
 

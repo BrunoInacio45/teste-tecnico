@@ -10,7 +10,7 @@ export AWS_DEFAULT_REGION=$REGION
 
 echo "==> Sending test events to raw-events..."
 
-# --- dev-42: commits ---
+# --- dev-42: all metric types (6 events) ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -35,7 +35,6 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
   }'
 echo "   sent: dev-42 commits (12)"
 
-# --- dev-42: pull_requests ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -60,7 +59,6 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
   }'
 echo "   sent: dev-42 pull_requests (3)"
 
-# --- dev-42: review_time_minutes ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -85,7 +83,7 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
   }'
 echo "   sent: dev-42 review_time_minutes (60)"
 
-# --- dev-99: varios tipos ---
+# --- dev-99: all metric types (3 events) ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -122,7 +120,7 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
   }'
 echo "   sent: dev-99 pull_requests (1)"
 
-# --- dev-17: novo developer ---
+# --- dev-17: all metric types (3 events) ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -147,7 +145,81 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
   }'
 echo "   sent: dev-17 review_time_minutes (90)"
 
-# --- Inválidos: para testar validação e DLQ ---
+aws --endpoint-url=$ENDPOINT sqs send-message \
+  --queue-url "$ENDPOINT/000000000000/raw-events" \
+  --message-body '{
+    "event_id": "f1a2b3c4-d5e6-4789-abcd-f01234567890",
+    "developer_id": "dev-17",
+    "metric_type": "pull_requests",
+    "value": 4,
+    "repository": "org/mobile-app",
+    "timestamp": "2026-05-21T13:00:00Z"
+  }'
+echo "   sent: dev-17 pull_requests (4)"
+
+# --- dev-55: all metric types (3 events) ---
+aws --endpoint-url=$ENDPOINT sqs send-message \
+  --queue-url "$ENDPOINT/000000000000/raw-events" \
+  --message-body '{
+    "event_id": "11223344-5566-4778-8990-aabbccddeeff",
+    "developer_id": "dev-55",
+    "metric_type": "commits",
+    "value": 15,
+    "repository": "org/infra-tools",
+    "timestamp": "2026-05-18T10:00:00Z"
+  }'
+echo "   sent: dev-55 commits (15)"
+
+aws --endpoint-url=$ENDPOINT sqs send-message \
+  --queue-url "$ENDPOINT/000000000000/raw-events" \
+  --message-body '{
+    "event_id": "aabbccdd-eeff-4011-8223-344556677889",
+    "developer_id": "dev-55",
+    "metric_type": "pull_requests",
+    "value": 6,
+    "repository": "org/infra-tools",
+    "timestamp": "2026-05-19T11:30:00Z"
+  }'
+echo "   sent: dev-55 pull_requests (6)"
+
+aws --endpoint-url=$ENDPOINT sqs send-message \
+  --queue-url "$ENDPOINT/000000000000/raw-events" \
+  --message-body '{
+    "event_id": "55667788-9900-4112-8334-556677889900",
+    "developer_id": "dev-55",
+    "metric_type": "review_time_minutes",
+    "value": 120,
+    "repository": "org/infra-tools",
+    "timestamp": "2026-05-20T09:45:00Z"
+  }'
+echo "   sent: dev-55 review_time_minutes (120)"
+
+# --- dev-77: commits + pull_requests (2 events) ---
+aws --endpoint-url=$ENDPOINT sqs send-message \
+  --queue-url "$ENDPOINT/000000000000/raw-events" \
+  --message-body '{
+    "event_id": "99aabbcc-ddee-4ff0-8112-233445566778",
+    "developer_id": "dev-77",
+    "metric_type": "commits",
+    "value": 9,
+    "repository": "org/auth-service",
+    "timestamp": "2026-05-21T14:00:00Z"
+  }'
+echo "   sent: dev-77 commits (9)"
+
+aws --endpoint-url=$ENDPOINT sqs send-message \
+  --queue-url "$ENDPOINT/000000000000/raw-events" \
+  --message-body '{
+    "event_id": "ccddeeff-0011-4223-8445-667788990011",
+    "developer_id": "dev-77",
+    "metric_type": "pull_requests",
+    "value": 2,
+    "repository": "org/auth-service",
+    "timestamp": "2026-05-21T16:30:00Z"
+  }'
+echo "   sent: dev-77 pull_requests (2)"
+
+# --- Inválidos: para testar validação e DLQ (3 events) ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -184,8 +256,7 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
   }'
 echo "   sent: INVALID review_time_minutes > 1440 (should go to DLQ)"
 
-# --- Duplicatas: para testar idempotência no aggregator ---
-# Reenvia eventos já enviados acima (mesmo event_id)
+# --- Duplicatas: para testar idempotência no aggregator (2 events) ---
 aws --endpoint-url=$ENDPOINT sqs send-message \
   --queue-url "$ENDPOINT/000000000000/raw-events" \
   --message-body '{
@@ -211,7 +282,7 @@ aws --endpoint-url=$ENDPOINT sqs send-message \
 echo "   sent: DUPLICATE of dev-99 review_time_minutes (aggregator must ignore)"
 
 echo ""
-echo "==> Done! Total: 15 events (11 valid, 3 invalid, 2 duplicates)"
+echo "==> Done! Total: 22 events (17 valid, 3 invalid, 2 duplicates)"
 echo "    Watch processor and aggregator logs to see the pipeline in action."
 echo ""
 echo "    Query the API:"
@@ -219,3 +290,5 @@ echo "      curl http://localhost:8080/metrics/dev-42/summary"
 echo "      curl http://localhost:8080/metrics/dev-42"
 echo "      curl http://localhost:8080/metrics/dev-99/summary"
 echo "      curl http://localhost:8080/metrics/dev-17/summary"
+echo "      curl http://localhost:8080/metrics/dev-55/summary"
+echo "      curl http://localhost:8080/metrics/dev-77/summary"

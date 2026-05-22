@@ -14,6 +14,7 @@ import (
 
 	"processor/internal/infra/config"
 	"processor/internal/infra/queue"
+	"processor/internal/infra/telemetry"
 	"processor/internal/infra/worker"
 	"processor/internal/usecase"
 )
@@ -28,6 +29,14 @@ func main() {
 		"workers", cfg.WorkersCount,
 		"processor_id", cfg.ProcessorID,
 	)
+
+	bgCtx := context.Background()
+	shutdownTracing, err := telemetry.Setup(bgCtx, "processor")
+	if err != nil {
+		slog.Warn("failed to initialize tracing", "error", err)
+		shutdownTracing = func(ctx context.Context) error { return nil }
+	}
+	defer shutdownTracing(bgCtx)
 
 	sqsClient := newSQSClient(cfg)
 
